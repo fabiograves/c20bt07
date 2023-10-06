@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp">
+
+    <!-- Adiciona um LinearLayout para envolver os elementos -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:background="@android:drawable/editbox_background_normal"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"> <!-- Define um background para a caixa -->
+
+        <!-- Adiciona uma CheckBox no lado esquerdo para seleção -->
+        <CheckBox
+            android:id="@+id/selectCheckBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Adiciona um LinearLayout para envolver os dados do banco de dados -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <!-- Adicione os TextViews para seus dados do banco de dados aqui -->
+            <TextView
+                android:id="@+id/pesoTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Peso: "
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/nomeTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Brinco:"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/dataHoraCadastroTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cadastro em: "
+                android:textSize="16sp" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

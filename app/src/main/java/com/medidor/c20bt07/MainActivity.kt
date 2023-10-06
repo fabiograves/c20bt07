@@ -28,44 +28,28 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.widget.Toast
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Date
 
 // Criando BD
-class DatabaseHelper(context: Context) :
-    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
-
-    companion object {
-        private const val DATABASE_NAME = "seu_banco_de_dados.db"
-        private const val DATABASE_VERSION = 1
-
-        // Nome da tabela e colunas
-        const val TABLE_NAME = "registros"
-        const val COLUMN_ID = "_id"
-        const val COLUMN_BRINCO = "brinco"
-        const val COLUMN_PESO = "peso"
-        const val COLUMN_DATA = "data"
-        const val COLUMN_HORA = "hora"
+// Classe para gerenciar o banco de dados SQLite
+class AppDatabaseHelper(context: Context) : SQLiteOpenHelper(
+    context,
+    "app_database",
+    null,
+    1
+) {
+    override fun onCreate(db: SQLiteDatabase) {
+        // Cria a tabela "brincos"
+        db.execSQL("CREATE TABLE brincos (id INTEGER PRIMARY KEY, peso REAL, nome TEXT, dataHoraCadastro DATETIME)")
     }
 
-    override fun onCreate(db: SQLiteDatabase?) {
-        // Crie a tabela
-        val CREATE_TABLE = "CREATE TABLE $TABLE_NAME (" +
-                "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
-                "$COLUMN_BRINCO TEXT," +
-                "$COLUMN_PESO REAL," +
-                "$COLUMN_DATA TEXT," +
-                "$COLUMN_HORA TEXT)"
-        db?.execSQL(CREATE_TABLE)
-    }
-
-    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
-        // Atualiza o banco de dados, se necessário
-        db?.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
-        onCreate(db)
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        // Faz upgrade do banco de dados
     }
 }
 
 class MainActivity : AppCompatActivity() {
-    private val discoveredDevices: MutableList<BluetoothDevice> = ArrayList()
+    private lateinit var database: AppDatabaseHelper
     private lateinit var textViewLog: TextView
     private lateinit var textViewPesoBt: TextView
     private lateinit var editTextBrinco: EditText
@@ -95,46 +79,24 @@ class MainActivity : AppCompatActivity() {
         editTextBrinco = findViewById(R.id.editTextBrinco)
         textViewPesoBt = findViewById(R.id.textViewPesoBt)
 
+        buttonEntrarPesquisa =findViewById(R.id.buttonEntrarPesquisa)
 
+        buttonEntrarPesquisa.setOnClickListener {
+            // Define o destino da ação para a outra página
+            val intent = Intent(this, bancoDeDados::class.java)
 
-        // Configurar um ouvinte de clique para o botão
-        buttonSalvarBrinco.setOnClickListener {
-            // Obter a data e hora atuais
-            val dataHoraAtual = LocalDateTime.now()
-
-            // Formatar a data atual no formato dd/mm/aaaa
-            val dataAtual = dataHoraAtual.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-
-            // Formatar a hora atual no formato hh:mm (24 horas)
-            val horaAtual = dataHoraAtual.format(DateTimeFormatter.ofPattern("HH:mm"))
-
-            // Obter os valores dos campos
-            val brinco = editTextBrinco.text.toString()
-            val peso = textViewPesoBt.text.toString()
-            val data = dataAtual
-            val hora = horaAtual
-
-            // Inserir esses valores no banco de dados
-            val dbHelper = DatabaseHelper(this)
-            val db = dbHelper.writableDatabase
-            val values = ContentValues().apply {
-                put(DatabaseHelper.COLUMN_BRINCO, brinco)
-                put(DatabaseHelper.COLUMN_PESO, peso.toDouble()) // Converter para Double
-                put(DatabaseHelper.COLUMN_DATA, data)
-                put(DatabaseHelper.COLUMN_HORA, hora)
-            }
-
-            val newRowId = db?.insert(DatabaseHelper.TABLE_NAME, null, values)
-
-            // Verifique se a inserção foi bem-sucedida
-            if (newRowId != -1L) {
-                // Inserção bem-sucedida, faça algo aqui se necessário
-                Toast.makeText(this, "Registro inserido com sucesso!", Toast.LENGTH_SHORT).show()
-            } else {
-                // Ocorreu um erro durante a inserção
-                Toast.makeText(this, "Erro ao inserir registro.", Toast.LENGTH_SHORT).show()
-            }
+            // Inicia a atividade
+            startActivity(intent)
         }
+
+        // Botão para salvar o brinco
+        val buttonSalvarBrinco = findViewById<Button>(R.id.buttonSalvarBrinco)
+        buttonSalvarBrinco.setOnClickListener {
+            salvarBrinco()
+        }
+
+        // Inicializa o banco de dados SQLite
+        database = AppDatabaseHelper(this)
 
         // Verifique as permissões e inicie o Bluetooth
         checkAndInitializeBluetooth()
@@ -274,11 +236,43 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
-
     }
 
+    // Função para salvar os dados do brinco no banco de dados
+    private fun salvarBrinco() {
+        val pesoText = textViewPesoBt.text.toString().trim()
 
+        if (pesoText.isEmpty()) {
+            Toast.makeText(this, "Conectar ao C20 para receber o peso.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val peso = try {
+            pesoText.toFloat()
+        } catch (e: NumberFormatException) {
+            Toast.makeText(this, "Formato de peso inválido.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val editNumBrinco = findViewById<EditText>(R.id.editTextBrinco)
+        val nomeBrinco = editNumBrinco.text.toString().trim()
+
+        if (nomeBrinco.isEmpty()) {
+            Toast.makeText(this, "Digite um número para o brinco!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dataHoraCadastro = Date()
+
+        val brinco = ContentValues().apply {
+            put("peso", peso)
+            put("nome", nomeBrinco)
+            put("dataHoraCadastro", dataHoraCadastro.time)
+        }
+
+        database.writableDatabase.insert("brincos", null, brinco)
+        Toast.makeText(this, "Dados do brinco salvos com sucesso!", Toast.LENGTH_SHORT).show()
+    }
 
     private fun checkAndInitializeBluetooth() {
         // Verifique as permissões e inicialize o Bluetooth
