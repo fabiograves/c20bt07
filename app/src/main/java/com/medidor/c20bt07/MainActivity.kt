@@ -48,26 +48,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        spinnerBt = findViewById(R.id.spinnerBt)
-        textViewPesoBt = findViewById(R.id.textViewPesoBt)
-
-        val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
-        //Pagina Pesquisar
-
-        val adaptador = ArrayAdapter<Any>(
-            this,
-            android.R.layout.simple_spinner_item,
-            arrayListOf()
-        )
-
-        adaptador.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-
-        spinnerBt.adapter = adaptador
-
-        // Inicializa o Bluetooth Manager e Adapter
-        bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager.adapter
-
         // Verifique as permissões e inicie o Bluetooth
         checkAndInitializeBluetooth()
 
@@ -75,6 +55,18 @@ class MainActivity : AppCompatActivity() {
 
         // Inicie a descoberta de dispositivos Bluetooth
         startBluetoothDiscovery()
+
+        spinnerBt = findViewById(R.id.spinnerBt)
+        textViewPesoBt = findViewById(R.id.textViewPesoBt)
+
+        val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
+        //Pagina Pesquisar
+
+        // Inicializa o Bluetooth Manager e Adapter
+        bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        bluetoothAdapter = bluetoothManager.adapter
+
+
     }
 
     private fun checkAndInitializeBluetooth() {
