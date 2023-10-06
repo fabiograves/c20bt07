@@ -85,22 +85,29 @@ class MainActivity : AppCompatActivity() {
             if (device == null) {
                 // Nenhum dispositivo foi selecionado
                 return
+            } else {
+                // Conecta ao dispositivo selecionado
+                val MY_UUID = "00001101-0000-1000-8000-00805F9B34FB"
+                val bluetoothSocket =
+                    device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
+
+                if (bluetoothSocket == null) {
+                    // Não foi possível criar o socket
+                    return
+                } else {
+                    bluetoothSocket.connect()
+
+                    // Inicia o fluxo de dados
+
+                    val inputStream = bluetoothSocket.inputStream
+                        .bufferedReader()
+                        .readLines()
+
+                    // Exibe o peso
+
+                    textViewPesoBt.text = inputStream[0]
+                }
             }
-
-            val MY_UUID = "00001101-0000-1000-8000-00805F9B34FB"
-            val bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
-
-            bluetoothSocket.connect()
-
-            // Inicia o fluxo de dados
-
-            val inputStream = bluetoothSocket.inputStream
-                .bufferedReader()
-                .readLines()
-
-            // Exibe o peso
-
-            textViewPesoBt.text = inputStream[0]
         }
     }
 }
