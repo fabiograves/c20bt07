@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -22,12 +23,52 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.PackageManagerCompat
 import java.io.IOException
 import java.util.UUID
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+import android.widget.Toast
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+// Criando BD
+class DatabaseHelper(context: Context) :
+    SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        private const val DATABASE_NAME = "seu_banco_de_dados.db"
+        private const val DATABASE_VERSION = 1
+
+        // Nome da tabela e colunas
+        const val TABLE_NAME = "registros"
+        const val COLUMN_ID = "_id"
+        const val COLUMN_BRINCO = "brinco"
+        const val COLUMN_PESO = "peso"
+        const val COLUMN_DATA = "data"
+        const val COLUMN_HORA = "hora"
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        // Crie a tabela
+        val CREATE_TABLE = "CREATE TABLE $TABLE_NAME (" +
+                "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT," +
+                "$COLUMN_BRINCO TEXT," +
+                "$COLUMN_PESO REAL," +
+                "$COLUMN_DATA TEXT," +
+                "$COLUMN_HORA TEXT)"
+        db?.execSQL(CREATE_TABLE)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        // Atualiza o banco de dados, se necessário
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+        onCreate(db)
+    }
+}
 
 class MainActivity : AppCompatActivity() {
     private val discoveredDevices: MutableList<BluetoothDevice> = ArrayList()
     private lateinit var textViewLog: TextView
     private lateinit var textViewPesoBt: TextView
-    private lateinit var edittextBrinco: EditText
+    private lateinit var editTextBrinco: EditText
     private lateinit var buttonSalvarBrinco: Button
     private lateinit var spinnerBt: Spinner
     private lateinit var buttonConectarBt: Button
@@ -48,6 +89,52 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Inicialize as vistas
+        buttonSalvarBrinco = findViewById(R.id.buttonSalvarBrinco)
+        editTextBrinco = findViewById(R.id.editTextBrinco)
+        textViewPesoBt = findViewById(R.id.textViewPesoBt)
+
+
+
+        // Configurar um ouvinte de clique para o botão
+        buttonSalvarBrinco.setOnClickListener {
+            // Obter a data e hora atuais
+            val dataHoraAtual = LocalDateTime.now()
+
+            // Formatar a data atual no formato dd/mm/aaaa
+            val dataAtual = dataHoraAtual.format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+
+            // Formatar a hora atual no formato hh:mm (24 horas)
+            val horaAtual = dataHoraAtual.format(DateTimeFormatter.ofPattern("HH:mm"))
+
+            // Obter os valores dos campos
+            val brinco = editTextBrinco.text.toString()
+            val peso = textViewPesoBt.text.toString()
+            val data = dataAtual
+            val hora = horaAtual
+
+            // Inserir esses valores no banco de dados
+            val dbHelper = DatabaseHelper(this)
+            val db = dbHelper.writableDatabase
+            val values = ContentValues().apply {
+                put(DatabaseHelper.COLUMN_BRINCO, brinco)
+                put(DatabaseHelper.COLUMN_PESO, peso.toDouble()) // Converter para Double
+                put(DatabaseHelper.COLUMN_DATA, data)
+                put(DatabaseHelper.COLUMN_HORA, hora)
+            }
+
+            val newRowId = db?.insert(DatabaseHelper.TABLE_NAME, null, values)
+
+            // Verifique se a inserção foi bem-sucedida
+            if (newRowId != -1L) {
+                // Inserção bem-sucedida, faça algo aqui se necessário
+                Toast.makeText(this, "Registro inserido com sucesso!", Toast.LENGTH_SHORT).show()
+            } else {
+                // Ocorreu um erro durante a inserção
+                Toast.makeText(this, "Erro ao inserir registro.", Toast.LENGTH_SHORT).show()
+            }
+        }
 
         // Verifique as permissões e inicie o Bluetooth
         checkAndInitializeBluetooth()
@@ -128,65 +215,66 @@ class MainActivity : AppCompatActivity() {
             // Obtém o objeto BluetoothDevice correspondente ao item selecionado no spinner
             val dispositivoSelecionado = devices.find { it.name == itemSelecionado }
 
-            // **Verifica se o bluetoothSocket existe e está conectado antes de tentar conectar novamente**
+            // Verifica se o bluetoothSocket existe e está conectado antes de tentar conectar novamente
             if (bluetoothSocket == null || !bluetoothSocket!!.isConnected) {
                 // O Bluetooth não está conectado, conecta ao dispositivo selecionado
                 // Use um operador safe call para verificar se dispositivoSelecionado é nulo
                 bluetoothSocket = dispositivoSelecionado?.createRfcommSocketToServiceRecord(
                     UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
                 )
-                bluetoothSocket!!.connect()
 
-                // Inicia uma thread para receber os dados do Bluetooth
-                Thread {
-                    val inputStream = bluetoothSocket!!.inputStream
-                    val buffer = ByteArray(1024)
-                    val valoresRecebidos = mutableListOf<String>()
+                try {
+                    bluetoothSocket!!.connect()
 
-                    while (true) {
-                        try {
-                            val bytes = inputStream.read(buffer)
-                            val data = String(buffer, 0, bytes).trim()
-                            val dataWithoutDot = data.trimEnd('.')
+                    // Inicia uma thread para receber os dados do Bluetooth
+                    Thread {
+                        val inputStream = bluetoothSocket!!.inputStream
+                        val buffer = ByteArray(1024)
+                        val valoresRecebidos = mutableListOf<String>()
 
-                            valoresRecebidos.add(dataWithoutDot)
-                            if (valoresRecebidos.size > 30) {
-                                valoresRecebidos.removeAt(0)
+                        while (true) {
+                            try {
+                                val bytes = inputStream.read(buffer)
+                                val data = String(buffer, 0, bytes).trim()
+                                val dataWithoutDot = data.trimEnd('.')
+
+                                valoresRecebidos.add(dataWithoutDot)
+                                if (valoresRecebidos.size > 30) {
+                                    valoresRecebidos.removeAt(0)
+                                }
+
+                                val valorMaisFrequente =
+                                    valoresRecebidos.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+
+                                // Atualiza o texto do textViewPesoBt com um delay de 1 segundo
+                                runOnUiThread {
+                                    textViewPesoBt.text = valorMaisFrequente ?: ""
+                                }
+
+                                // Adiciona um delay de 1 segundo
+                                //Thread.sleep(1000)
+                            } catch (e: IOException) {
+                                e.printStackTrace()
                             }
-
-                            val valorMaisFrequente =
-                                valoresRecebidos.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
-
-                            // Atualiza o texto do textViewPesoBt com um delay de 1 segundo
-                            runOnUiThread {
-                                textViewPesoBt.text = valorMaisFrequente ?: ""
-                            }
-
-                            // Adiciona um delay de 1 segundo
-                            //Thread.sleep(1000)
-                        } catch (e: IOException) {
-                            // O socket está fechado ou expirou
-                            textViewLog.text = "O socket está fechado, não é possível conectar o dispositivo"
-                            break
                         }
-                    }
-                }.start()
+                    }.start()
 
-                // Altera o texto do botão buttonConectarBt para Desconectar
-                buttonConectarBt.text = "Desconectar"
-                // O Bluetooth está conectado, exiba o texto "Conectado ao ${itemSelecionado}"
-                textViewLog.text = "Conectado ao ${itemSelecionado!!}"
+                    // Altera o texto do botão buttonConectarBt para Desconectar
+                    buttonConectarBt.text = "Desconectar"
+                    // O Bluetooth está conectado, exiba o texto "Conectado ao ${itemSelecionado}"
+                    textViewLog.text = "Conectado ao ${itemSelecionado!!}"
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    // Lida com a exceção de conexão Bluetooth aqui
+                    textViewLog.text = "Não foi possível se conectar ao ${itemSelecionado!!}"
+                }
             } else {
                 // O Bluetooth já está conectado, desconecta o Bluetooth
                 desconectarBluetooth()
-
-                // Verifica se o socket está fechado
-                if (!bluetoothSocket!!.isConnected) {
-                    // O socket está fechado, não é possível conectar o dispositivo
-                    textViewLog.text = "O socket está fechado, não é possível conectar o dispositivo"
-                }
             }
         }
+
+
 
     }
 
