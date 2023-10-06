@@ -1,9 +1,13 @@
 package com.medidor.c20bt07
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.ArrayAdapter
@@ -11,6 +15,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
+import java.util.UUID
 
 
 class MainActivity : AppCompatActivity() {
@@ -25,12 +30,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonEntrarPesquisa: Button
 
     private var bluetoothData: String = ""
-    private var bluetoothService: BluetoothService? = null
+    //private var bluetoothService: BluetoothService? = null
 
     companion object {
         private const val REQUEST_BLUETOOTH_SCAN_PERMISSION = 1
     }
 
+    @SuppressLint("MissingPermission")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -40,8 +46,52 @@ class MainActivity : AppCompatActivity() {
 
         val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
             //Pagina Pesquisar
+
+        val adaptador = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            arrayListOf()
+        )
+
+        adaptador.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        spinnerBt.adapter = adaptador
+
+        // Atualiza a lista de dispositivos conectados
+
+        val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+
+        bluetoothAdapter.startDiscovery()
+
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                val action = intent.action
+
+                if (action == BluetoothDevice.ACTION_FOUND) {
+                    // Adiciona o dispositivo à lista
+                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
+                    adaptador.add(device.name)
+                }
+            }
         }
 
+        registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
+
+        val dispositivo = spinnerBt.selectedItem as BluetoothDevice
+
+        val bluetoothSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
+
+        bluetoothSocket.connect()
+
+        // Inicia o fluxo de dados
+
+        val inputStream = bluetoothSocket.inputStream
+            .bufferedReader()
+            .readLines()
+
+        // Exibe o peso
+
+        textViewPesoBt.text = inputStream[0]
 
     }
 }
