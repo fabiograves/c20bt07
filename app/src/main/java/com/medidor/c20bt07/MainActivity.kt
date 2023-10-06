@@ -15,7 +15,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
+import androidx.core.app.ActivityCompat
+import androidx.core.content.PackageManagerCompat
 import java.util.UUID
+import android.content.pm.PackageManagerCompat
 
 
 class MainActivity : AppCompatActivity() {
@@ -40,6 +43,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        // Verifica se o aplicativo tem a permissão BLUETOOTH_SCAN
+        val hasPermission = PackageManagerCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN)
+
+        // Se o aplicativo não tem a permissão BLUETOOTH_SCAN, solicita a permissão ao usuário
+        if (hasPermission != PackageManagerCompat.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_SCAN), REQUEST_BLUETOOTH_SCAN_PERMISSION)
+        }
 
         spinnerBt = findViewById(R.id.spinnerBt)
         textViewPesoBt = findViewById(R.id.textViewPesoBt)
