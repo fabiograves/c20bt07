@@ -62,7 +62,8 @@ class MainActivity : AppCompatActivity() {
         val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
         //Pagina Pesquisar
 
-
+        // Inicializa a variável buttonConectarBt
+        buttonConectarBt = findViewById(R.id.buttonConectarBt)
 
         // Inicializa o Bluetooth Manager e Adapter
         bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
