@@ -45,9 +45,9 @@ class MainActivity : AppCompatActivity() {
         textViewPesoBt = findViewById(R.id.textViewPesoBt)
 
         val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
-            //Pagina Pesquisar
+        //Pagina Pesquisar
 
-        val adaptador = ArrayAdapter(
+        val adaptador = ArrayAdapter<Any>(
             this,
             android.R.layout.simple_spinner_item,
             arrayListOf()
@@ -77,21 +77,30 @@ class MainActivity : AppCompatActivity() {
 
         registerReceiver(receiver, IntentFilter(BluetoothDevice.ACTION_FOUND))
 
-        val dispositivo = spinnerBt.selectedItem as BluetoothDevice
+        val buttonConectarBt = findViewById<Button>(R.id.buttonConectarBt)
 
-        val bluetoothSocket = dispositivo.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
+        buttonConectarBt.setOnClickListener {
+            val device = spinnerBt.selectedItem as? BluetoothDevice
 
-        bluetoothSocket.connect()
+            if (device == null) {
+                // Nenhum dispositivo foi selecionado
+                return
+            }
 
-        // Inicia o fluxo de dados
+            val MY_UUID = "00001101-0000-1000-8000-00805F9B34FB"
+            val bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
 
-        val inputStream = bluetoothSocket.inputStream
-            .bufferedReader()
-            .readLines()
+            bluetoothSocket.connect()
 
-        // Exibe o peso
+            // Inicia o fluxo de dados
 
-        textViewPesoBt.text = inputStream[0]
+            val inputStream = bluetoothSocket.inputStream
+                .bufferedReader()
+                .readLines()
 
+            // Exibe o peso
+
+            textViewPesoBt.text = inputStream[0]
+        }
     }
 }
