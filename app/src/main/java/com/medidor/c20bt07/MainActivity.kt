@@ -20,6 +20,7 @@ import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PackageManagerCompat
+import java.io.IOException
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
@@ -56,18 +57,91 @@ class MainActivity : AppCompatActivity() {
         // Inicie a descoberta de dispositivos Bluetooth
         startBluetoothDiscovery()
 
-        spinnerBt = findViewById(R.id.spinnerBt)
         textViewPesoBt = findViewById(R.id.textViewPesoBt)
 
         val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
         //Pagina Pesquisar
 
+
+
         // Inicializa o Bluetooth Manager e Adapter
         bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
 
+        // Obtém a lista de dispositivos pareados
+        val devices = BluetoothAdapter.getDefaultAdapter().getBondedDevices()
+
+        // Cria um adaptador para o spinner
+        val adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            devices.map { it.name }
+        )
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
+        // Vincula o spinner ao adaptador
+        findViewById<Spinner>(R.id.spinnerBt).adapter = adapter
+
+        // Vincula o onclick ao botão
+        buttonConectarBt.setOnClickListener {
+            // Chama o método onConectar()
+            onConectar()
+        }
 
     }
+
+    @SuppressLint("MissingPermission")
+    private fun onConectar() {
+        // Obtém o dispositivo selecionado no spinner
+        val dispositivoSelecionado = findViewById<Spinner>(R.id.spinnerBt).selectedItem as BluetoothDevice
+
+        // Obtém o endereço MAC do dispositivo
+        val macAddress = dispositivoSelecionado.address
+
+        // Cria um socket Bluetooth para o dispositivo
+        bluetoothSocket = dispositivoSelecionado.createRfcommSocketToServiceRecord(
+            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        )
+
+        // Conecta ao dispositivo
+        bluetoothSocket!!.connect()
+
+        // Inicia uma thread para receber os dados do Bluetooth
+        Thread {
+            val inputStream = bluetoothSocket!!.inputStream
+            val buffer = ByteArray(1024)
+            val valoresRecebidos = mutableListOf<String>()
+
+            while (true) {
+                try {
+                    val bytes = inputStream.read(buffer)
+                    val data = String(buffer, 0, bytes).trim()
+                    val dataWithoutDot = data.trimEnd('.')
+
+                    valoresRecebidos.add(dataWithoutDot)
+                    if (valoresRecebidos.size > 30) {
+                        valoresRecebidos.removeAt(0)
+                    }
+
+                    val valorMaisFrequente =
+                        valoresRecebidos.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+
+                    runOnUiThread {
+                        textViewPesoBt.text = valorMaisFrequente ?: ""  // o valor vai para textViewPesoBt
+                    }
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            }
+        }.start()
+
+
+        // Atualize o texto do TextView "textViewLog" para indicar a conexão bem-sucedida.
+        runOnUiThread {
+            textViewLog.text = "Conectado ao ${dispositivoSelecionado.name}"
+        }
+    }
+
 
     private fun checkAndInitializeBluetooth() {
         // Verifique as permissões e inicialize o Bluetooth
