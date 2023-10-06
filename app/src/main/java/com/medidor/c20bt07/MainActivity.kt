@@ -69,8 +69,12 @@ class MainActivity : AppCompatActivity() {
 
                 if (action == BluetoothDevice.ACTION_FOUND) {
                     // Adiciona o dispositivo à lista
-                    val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
-                    adaptador.add(device.name)
+                    val device = spinnerBt.selectedItem as? BluetoothDevice
+
+                    if (device == null) {
+                        // Nenhum dispositivo foi selecionado
+                        return
+                    }
                 }
             }
         }
@@ -84,16 +88,15 @@ class MainActivity : AppCompatActivity() {
 
             if (device == null) {
                 // Nenhum dispositivo foi selecionado
-                return
+
             } else {
                 // Conecta ao dispositivo selecionado
                 val MY_UUID = "00001101-0000-1000-8000-00805F9B34FB"
-                val bluetoothSocket =
-                    device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
+                val bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(MY_UUID))
 
                 if (bluetoothSocket == null) {
                     // Não foi possível criar o socket
-                    return
+                    // Você pode retornar aqui ou exibir um erro para o usuário
                 } else {
                     bluetoothSocket.connect()
 
