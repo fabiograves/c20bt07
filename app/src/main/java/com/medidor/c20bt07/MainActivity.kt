@@ -58,6 +58,8 @@ class MainActivity : AppCompatActivity() {
         startBluetoothDiscovery()
 
         textViewPesoBt = findViewById(R.id.textViewPesoBt)
+        // Limita o tamanho do texto do textViewPesoBt a uma linha
+        textViewPesoBt.maxLines = 1
 
         val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
         //Pagina Pesquisar
@@ -91,63 +93,55 @@ class MainActivity : AppCompatActivity() {
             // Obtém o objeto BluetoothDevice correspondente ao item selecionado no spinner
             val dispositivoSelecionado = devices.find { it.name == itemSelecionado }
 
-            // Conecta ao dispositivo selecionado
-            bluetoothSocket!!.connect()
-        }
+            // **Verifica se o BluetoothSocket existe e está conectado antes de tentar conectar novamente**
+            if (bluetoothSocket != null && bluetoothSocket!!.isConnected) {
+                // O Bluetooth já está conectado, não faça nada
+            } else {
+                // Conecta ao dispositivo selecionado
+                // Use um operador safe call para verificar se dispositivoSelecionado é nulo
+                bluetoothSocket = dispositivoSelecionado?.createRfcommSocketToServiceRecord(
+                    UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+                )
+                bluetoothSocket!!.connect()
 
-    }
+                // Inicia uma thread para receber os dados do Bluetooth
+                Thread {
+                    val inputStream = bluetoothSocket!!.inputStream
+                    val buffer = ByteArray(1024)
+                    val valoresRecebidos = mutableListOf<String>()
 
-    @SuppressLint("MissingPermission")
-    private fun onConectar() {
-        // Obtém o dispositivo selecionado no spinner
-        val dispositivoSelecionado = findViewById<Spinner>(R.id.spinnerBt).selectedItem as BluetoothDevice
+                    while (true) {
+                        try {
+                            val bytes = inputStream.read(buffer)
+                            val data = String(buffer, 0, bytes).trim()
+                            val dataWithoutDot = data.trimEnd('.')
 
-        // Obtém o endereço MAC do dispositivo
-        val macAddress = dispositivoSelecionado.address
+                            valoresRecebidos.add(dataWithoutDot)
+                            if (valoresRecebidos.size > 30) {
+                                valoresRecebidos.removeAt(0)
+                            }
 
-        // Cria um socket Bluetooth para o dispositivo
-        bluetoothSocket = dispositivoSelecionado.createRfcommSocketToServiceRecord(
-            UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
-        )
+                            val valorMaisFrequente =
+                                valoresRecebidos.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
 
-        // Conecta ao dispositivo
-        bluetoothSocket!!.connect()
+                            // Atualiza o texto do textViewPesoBt com um delay de 1 segundo
+                            runOnUiThread {
+                                textViewPesoBt.text = valorMaisFrequente ?: ""
+                            }
 
-        // Inicia uma thread para receber os dados do Bluetooth
-        Thread {
-            val inputStream = bluetoothSocket!!.inputStream
-            val buffer = ByteArray(1024)
-            val valoresRecebidos = mutableListOf<String>()
-
-            while (true) {
-                try {
-                    val bytes = inputStream.read(buffer)
-                    val data = String(buffer, 0, bytes).trim()
-                    val dataWithoutDot = data.trimEnd('.')
-
-                    valoresRecebidos.add(dataWithoutDot)
-                    if (valoresRecebidos.size > 30) {
-                        valoresRecebidos.removeAt(0)
+                            // Adiciona um delay de 1 segundo
+                            //Thread.sleep(1000)
+                        } catch (e: IOException) {
+                            e.printStackTrace()
+                        }
                     }
-
-                    val valorMaisFrequente =
-                        valoresRecebidos.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
-
-                    runOnUiThread {
-                        textViewPesoBt.text = valorMaisFrequente ?: ""  // o valor vai para textViewPesoBt
-                    }
-                } catch (e: IOException) {
-                    e.printStackTrace()
-                }
+                }.start()
             }
-        }.start()
-
-
-        // Atualize o texto do TextView "textViewLog" para indicar a conexão bem-sucedida.
-        runOnUiThread {
-            textViewLog.text = "Conectado ao ${dispositivoSelecionado.name}"
         }
+
+
     }
+
 
 
     private fun checkAndInitializeBluetooth() {

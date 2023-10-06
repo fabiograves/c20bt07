@@ -73,7 +73,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Peso"
-            android:textSize="96sp" />
+            android:textAlignment="viewStart"
+            android:textSize="60sp" />
     </LinearLayout>
 
     <LinearLayout
