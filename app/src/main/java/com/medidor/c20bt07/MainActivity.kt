@@ -64,9 +64,6 @@ class MainActivity : AppCompatActivity() {
         val buttonEntrarPesquisa = findViewById<Button>(R.id.buttonEntrarPesquisa)
         //Pagina Pesquisar
 
-        // Inicializa a variável buttonConectarBt
-        buttonConectarBt = findViewById(R.id.buttonConectarBt)
-
         // Inicializa o Bluetooth Manager e Adapter
         bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothAdapter = bluetoothManager.adapter
@@ -82,8 +79,46 @@ class MainActivity : AppCompatActivity() {
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
 
+        // Obtém o textViewLog
+        val textViewLog = findViewById<TextView>(R.id.textViewLog)
+
+        // Atualiza o texto do textViewLog
+        fun atualizarLog(status: String) {
+            runOnUiThread {
+                // Adiciona um delay de 1 segundo
+                Thread.sleep(1000)
+
+                // Obtém o item selecionado no spinner
+                val itemSelecionado = findViewById<Spinner>(R.id.spinnerBt).selectedItem as String
+
+                // Verifica se o bluetoothSocket existe e está conectado
+                if (bluetoothSocket == null || !bluetoothSocket!!.isConnected) {
+                    // O Bluetooth não está conectado, exiba o texto "Desconectado"
+                    textViewLog.text = "Desconectado"
+                } else {
+                    // O Bluetooth está conectado, exiba o texto "Conectado ao ${itemSelecionado}"
+                    textViewLog.text = "Conectado ao ${itemSelecionado}"
+                }
+            }
+        }
+
         // Vincula o spinner ao adaptador
         findViewById<Spinner>(R.id.spinnerBt).adapter = adapter
+
+        // Obtém o botão buttonConectarBt
+        val buttonConectarBt = findViewById<Button>(R.id.buttonConectarBt)
+
+        // Função para desconectar o Bluetooth
+        fun desconectarBluetooth() {
+            // Desconecta o BluetoothSocket
+            bluetoothSocket?.close()
+
+            // Altera o texto do botão buttonConectarBt para Conectar
+            buttonConectarBt.text = "Conectar"
+
+            // Atualiza o texto do textViewLog
+            atualizarLog("Desconectado")
+        }
 
         // Vincula o onclick ao botão
         buttonConectarBt.setOnClickListener {
@@ -93,11 +128,9 @@ class MainActivity : AppCompatActivity() {
             // Obtém o objeto BluetoothDevice correspondente ao item selecionado no spinner
             val dispositivoSelecionado = devices.find { it.name == itemSelecionado }
 
-            // **Verifica se o BluetoothSocket existe e está conectado antes de tentar conectar novamente**
-            if (bluetoothSocket != null && bluetoothSocket!!.isConnected) {
-                // O Bluetooth já está conectado, não faça nada
-            } else {
-                // Conecta ao dispositivo selecionado
+            // **Verifica se o bluetoothSocket existe e está conectado antes de tentar conectar novamente**
+            if (bluetoothSocket == null || !bluetoothSocket!!.isConnected) {
+                // O Bluetooth não está conectado, conecta ao dispositivo selecionado
                 // Use um operador safe call para verificar se dispositivoSelecionado é nulo
                 bluetoothSocket = dispositivoSelecionado?.createRfcommSocketToServiceRecord(
                     UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
@@ -136,6 +169,14 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }.start()
+
+                // Altera o texto do botão buttonConectarBt para Desconectar
+                buttonConectarBt.text = "Desconectar"
+                // O Bluetooth está conectado, exiba o texto "Conectado ao ${itemSelecionado}"
+                textViewLog.text = "Conectado ao ${itemSelecionado!!}"
+            } else {
+                // O Bluetooth já está conectado, desconecta o Bluetooth
+                desconectarBluetooth()
             }
         }
 
