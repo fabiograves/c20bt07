@@ -85,8 +85,14 @@ class MainActivity : AppCompatActivity() {
 
         // Vincula o onclick ao botão
         buttonConectarBt.setOnClickListener {
-            // Chama o método onConectar()
-            onConectar()
+            // Obtém o item selecionado no spinner
+            val itemSelecionado = findViewById<Spinner>(R.id.spinnerBt).selectedItem as String
+
+            // Obtém o objeto BluetoothDevice correspondente ao item selecionado no spinner
+            val dispositivoSelecionado = devices.find { it.name == itemSelecionado }
+
+            // Conecta ao dispositivo selecionado
+            bluetoothSocket!!.connect()
         }
 
     }
