@@ -74,7 +74,7 @@
             android:layout_weight="1"
             android:text="0"
             android:textAlignment="viewStart"
-            android:textSize="60sp" />
+            android:textSize="75dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -122,7 +122,7 @@
             android:ems="10"
             android:hint="Digite o Brinco"
             android:inputType="text"
-            android:textSize="24sp" />
+            android:textSize="24dp" />
     </LinearLayout>
 
     <LinearLayout
@@ -190,7 +190,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Selecione o Dispositivo:"
-            android:textSize="16sp" />
+            android:textSize="16dp" />
 
         <Spinner
             android:id="@+id/spinnerBt"

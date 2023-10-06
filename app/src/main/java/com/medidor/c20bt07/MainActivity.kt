@@ -165,7 +165,9 @@ class MainActivity : AppCompatActivity() {
                             // Adiciona um delay de 1 segundo
                             //Thread.sleep(1000)
                         } catch (e: IOException) {
-                            e.printStackTrace()
+                            // O socket está fechado ou expirou
+                            textViewLog.text = "O socket está fechado, não é possível conectar o dispositivo"
+                            break
                         }
                     }
                 }.start()
@@ -177,9 +179,14 @@ class MainActivity : AppCompatActivity() {
             } else {
                 // O Bluetooth já está conectado, desconecta o Bluetooth
                 desconectarBluetooth()
+
+                // Verifica se o socket está fechado
+                if (!bluetoothSocket!!.isConnected) {
+                    // O socket está fechado, não é possível conectar o dispositivo
+                    textViewLog.text = "O socket está fechado, não é possível conectar o dispositivo"
+                }
             }
         }
-
 
     }
 
